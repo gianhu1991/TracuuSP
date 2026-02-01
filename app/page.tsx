@@ -296,21 +296,6 @@ export default function Home() {
               (Email: tracuusp-service@tracuusp.iam.gserviceaccount.com)
             </div>
           )}
-          {debugInfo && (
-            <div style={{ marginTop: '15px', padding: '10px', background: '#f5f5f5', borderRadius: '4px', fontSize: '12px' }}>
-              <button 
-                onClick={() => setShowDebug(!showDebug)}
-                style={{ marginBottom: '10px', padding: '5px 10px', cursor: 'pointer' }}
-              >
-                {showDebug ? 'Ẩn' : 'Hiển thị'} Debug Info
-              </button>
-              {showDebug && (
-                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                  {JSON.stringify(debugInfo, null, 2)}
-                </pre>
-              )}
-            </div>
-          )}
         </div>
       )}
 
