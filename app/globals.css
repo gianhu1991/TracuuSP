@@ -377,41 +377,51 @@ h1 {
   }
 
   .results-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin-left: -20px;
-    margin-right: -20px;
-    padding-left: 20px;
-    padding-right: 20px;
+    overflow: visible;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .results-table {
     font-size: 13px;
-    min-width: 100%;
-    width: max-content;
+    width: 100%;
+    table-layout: fixed;
   }
 
   .results-table th {
-    padding: 12px 8px;
+    padding: 12px 10px;
     font-size: 11px;
-    white-space: nowrap;
+  }
+
+  .results-table th:first-child {
+    width: 70%;
+  }
+
+  .results-table th:last-child {
+    width: 30%;
   }
 
   .results-table td {
-    padding: 12px 8px;
-    word-wrap: break-word;
-    word-break: break-word;
-    overflow-wrap: break-word;
+    padding: 12px 10px;
+    vertical-align: top;
   }
 
   .results-table td:first-child {
-    max-width: none;
-    min-width: 200px;
+    max-width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.4;
   }
 
   .results-table td:last-child {
     white-space: nowrap;
-    min-width: 100px;
+    text-align: center;
   }
 
   .copy-button {
