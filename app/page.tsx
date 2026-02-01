@@ -161,9 +161,9 @@ export default function Home() {
           if (data.debug.totalMatchedRows === 0) {
             errorMsg = `Không tìm thấy dòng nào khớp với OLT: "${olt}", Slot: "${slot}", Port: "${port}"`
           } else if (data.debug.rowsWithDaVe === 0) {
-            errorMsg = `Tìm thấy ${data.debug.totalMatchedRows} dòng khớp nhưng không có dòng nào có trạng thái "Đã vẽ"`
+            errorMsg = 'Không tìm thấy Spliter cấp 2 nào'
           } else {
-            errorMsg = `Tìm thấy ${data.debug.totalMatchedRows} dòng khớp, ${data.debug.rowsWithDaVe} dòng có "Đã vẽ" nhưng không có tên Spliter cấp 2`
+            errorMsg = 'Không tìm thấy Spliter cấp 2 nào'
           }
         }
         setError(errorMsg)
