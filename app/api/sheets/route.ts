@@ -58,7 +58,7 @@ export async function GET() {
     const knownSheets = [
       'Lạc Vân', 'Quảng Lạc', 'Phùng Thượng', 'Thạch Bình 2', 'Trại Ngọc',
       'Phú Sơn', 'Văn Phú 1', 'Đức Long', 'Xích Thổ', 'Yên Quang',
-      'Rịa', 'Rịa XGS', 'Ỷ Na', 'Nho Quan GX', 'Ỷ Na XGS',
+      'Rịa', 'Rịa XGS', 'Ỷ Na', 'Nho Quan XGS', 'Ỷ Na XGS',
       'Quỳnh Sơn', 'Thanh Lạc', 'Nho Quan 1', 'Phú Long', 'Nho Quan 2',
       'Thôn Ngải', 'Thạch Bình 1', 'Cúc Phương', 'Sơn Lai', 'Đồng Phong',
       'Trung Đông', 'Gia Thủy', 'Kỳ Phú', 'Văn Phú 2', 'Quỳnh Lưu'
