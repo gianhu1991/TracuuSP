@@ -4,6 +4,9 @@ import { google } from 'googleapis'
 export async function POST(request: NextRequest) {
   try {
     const { olt, slot, port } = await request.json()
+    
+    // Log để debug
+    console.error('[SEARCH] Request received:', JSON.stringify({ olt, slot, port }))
 
     if (!olt || !slot || !port) {
       return NextResponse.json(
@@ -279,16 +282,27 @@ export async function POST(request: NextRequest) {
       warning: matchedRowsCount > 0 && results.length === 0 ? 'Found matching rows but no results returned' : null
     }))
 
+    // Luôn trả về debug info để có thể xem trên trình duyệt
     return NextResponse.json({ 
       results,
-      // Thêm debug info trong development
-      ...(process.env.NODE_ENV === 'development' ? {
-        debug: {
-          totalMatchedRows: matchedRowsCount,
-          rowsWithDaVe: filteredByStatusCount,
-          searchParams: { olt, slot, port }
-        }
-      } : {})
+      debug: {
+        totalMatchedRows: matchedRowsCount,
+        rowsWithDaVe: filteredByStatusCount,
+        searchParams: { olt, slot, port },
+        columnIndexes: {
+          oltIndex,
+          slotIndex,
+          portIndex,
+          spliterCap2Index,
+          spliterCap2NameIndex,
+          trangThaiIndex
+        },
+        warning: matchedRowsCount > 0 && results.length === 0 
+          ? 'Tìm thấy dòng khớp OLT/Slot/Port nhưng không có kết quả. Có thể do: 1) Trạng thái không phải "Đã vẽ", 2) Không có tên Spliter cấp 2' 
+          : matchedRowsCount === 0 
+          ? 'Không tìm thấy dòng nào khớp với OLT/Slot/Port. Kiểm tra lại giá trị tìm kiếm.' 
+          : null
+      }
     })
   } catch (error: any) {
     console.error('Error searching:', error)

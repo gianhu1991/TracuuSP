@@ -32,13 +32,20 @@ export default function Home() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [showDebug, setShowDebug] = useState(false)
 
   // Load danh sách sheet khi component mount
   useEffect(() => {
-    const fetchSheets = async () => {
-      try {
-        const response = await fetch('/api/sheets')
-        const data = await response.json()
+    fetchSheets()
+  }, [])
+
+  const fetchSheets = async () => {
+    setLoadingSheets(true)
+    try {
+      // Thêm cache-busting để tránh cache
+      const response = await fetch(`/api/sheets?t=${Date.now()}`)
+      const data = await response.json()
         
         if (!response.ok) {
           throw new Error(data.error || 'Không thể tải danh sách OLT')
@@ -53,9 +60,7 @@ export default function Home() {
       } finally {
         setLoadingSheets(false)
       }
-    }
-    fetchSheets()
-  }, [])
+  }
 
   // Load danh sách Slot và Port khi chọn OLT
   useEffect(() => {
@@ -139,9 +144,29 @@ export default function Home() {
 
       const data = await response.json()
       setResults(data.results || [])
+      setDebugInfo(data.debug || null)
+      
+      // Hiển thị debug info trong console
+      if (data.debug) {
+        console.log('🔍 Debug Info:', data.debug)
+        if (data.debug.warning) {
+          console.warn('⚠️ Warning:', data.debug.warning)
+        }
+      }
       
       if (data.results && data.results.length === 0) {
-        setError('Không tìm thấy kết quả nào')
+        // Hiển thị thông tin debug chi tiết hơn
+        let errorMsg = 'Không tìm thấy kết quả nào'
+        if (data.debug) {
+          if (data.debug.totalMatchedRows === 0) {
+            errorMsg = `Không tìm thấy dòng nào khớp với OLT: "${olt}", Slot: "${slot}", Port: "${port}"`
+          } else if (data.debug.rowsWithDaVe === 0) {
+            errorMsg = `Tìm thấy ${data.debug.totalMatchedRows} dòng khớp nhưng không có dòng nào có trạng thái "Đã vẽ"`
+          } else {
+            errorMsg = `Tìm thấy ${data.debug.totalMatchedRows} dòng khớp, ${data.debug.rowsWithDaVe} dòng có "Đã vẽ" nhưng không có tên Spliter cấp 2`
+          }
+        }
+        setError(errorMsg)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Có lỗi xảy ra')
@@ -160,20 +185,41 @@ export default function Home() {
       <form onSubmit={handleSearch} className="search-form">
         <div className="form-group">
           <label htmlFor="olt">OLT:</label>
-          <select
-            id="olt"
-            value={olt}
-            onChange={(e) => setOlt(e.target.value)}
-            required
-            disabled={loadingSheets}
-          >
-            <option value="">-- Chọn OLT --</option>
-            {sheets.map((sheet) => (
-              <option key={sheet.sheetId} value={sheet.title}>
-                {sheet.title}
-              </option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+            <select
+              id="olt"
+              value={olt}
+              onChange={(e) => setOlt(e.target.value)}
+              required
+              disabled={loadingSheets}
+              style={{ flex: 1 }}
+            >
+              <option value="">-- Chọn OLT --</option>
+              {sheets.map((sheet) => (
+                <option key={sheet.sheetId} value={sheet.title}>
+                  {sheet.title}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={fetchSheets}
+              disabled={loadingSheets}
+              style={{ 
+                padding: '8px 12px', 
+                background: '#6c5ce7', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '4px',
+                cursor: loadingSheets ? 'not-allowed' : 'pointer',
+                fontSize: '12px',
+                whiteSpace: 'nowrap'
+              }}
+              title="Làm mới danh sách OLT"
+            >
+              {loadingSheets ? '⏳' : '🔄'}
+            </button>
+          </div>
         </div>
         
         <div className="form-group">
@@ -248,6 +294,21 @@ export default function Home() {
             <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
               Vui lòng kiểm tra: Google Sheet đã được chia sẻ với Service Account chưa? 
               (Email: tracuusp-service@tracuusp.iam.gserviceaccount.com)
+            </div>
+          )}
+          {debugInfo && (
+            <div style={{ marginTop: '15px', padding: '10px', background: '#f5f5f5', borderRadius: '4px', fontSize: '12px' }}>
+              <button 
+                onClick={() => setShowDebug(!showDebug)}
+                style={{ marginBottom: '10px', padding: '5px 10px', cursor: 'pointer' }}
+              >
+                {showDebug ? 'Ẩn' : 'Hiển thị'} Debug Info
+              </button>
+              {showDebug && (
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              )}
             </div>
           )}
         </div>
