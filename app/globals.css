@@ -10,9 +10,11 @@ body {
   overflow-x: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+    'Arial', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga' off;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -106,6 +108,23 @@ h1 {
   cursor: pointer;
   color: #2c3e50;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-family: inherit;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+.form-group select {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+.form-group select option {
+  padding: 10px;
+  font-family: inherit;
+  font-size: 15px;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
 .form-group input:focus,
