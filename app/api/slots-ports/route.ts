@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (error.message?.includes('PERMISSION_DENIED') || error.message?.includes('permission')) {
       errorMessage = 'Không có quyền truy cập Google Sheet. Vui lòng chia sẻ Sheet với Service Account.'
     } else if (error.message?.includes('NOT_FOUND')) {
-      errorMessage = `Không tìm thấy sheet "${olt}". Vui lòng kiểm tra tên sheet.`
+      errorMessage = `Không tìm thấy sheet. Vui lòng kiểm tra tên sheet.`
     } else if (error.message?.includes('not supported for this document')) {
       errorMessage = 'Lỗi: File Excel được upload có thể không hỗ trợ đầy đủ. Vui lòng thử lại hoặc kiểm tra quyền truy cập.'
     } else if (error.message) {
