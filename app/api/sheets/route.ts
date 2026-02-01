@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { google } from 'googleapis'
+import { drive_v3 } from 'googleapis'
 
 export async function GET() {
   try {
@@ -35,6 +36,7 @@ export async function GET() {
     })
 
     const sheets = google.sheets({ version: 'v4', auth })
+    const drive = google.drive({ version: 'v3', auth })
 
     // Thử lấy danh sách sheet thực tế từ Google Sheets API
     let sheetList: { title: string; sheetId: number }[] = []
@@ -53,20 +55,91 @@ export async function GET() {
           }))
           .filter((sheet: any) => sheet.title && sheet.title.trim() !== '')
         
-        console.log('✅ Lấy danh sách sheet thành công từ API:', sheetList.map(s => s.title))
+        console.log('✅ Lấy danh sách sheet thành công từ Sheets API:', sheetList.map(s => s.title))
       }
     } catch (apiError: any) {
-      console.error('⚠️ Không thể lấy danh sách sheet từ API:', apiError.message)
+      console.error('⚠️ Không thể lấy danh sách sheet từ Sheets API:', apiError.message)
       
       // Nếu lỗi PERMISSION_DENIED, throw error
       if (apiError.message?.includes('PERMISSION_DENIED') || apiError.message?.includes('permission')) {
         throw new Error('PERMISSION_DENIED: Không có quyền truy cập. Vui lòng chia sẻ Sheet với Service Account: tracuusp-service@tracuusp.iam.gserviceaccount.com')
       }
       
-      // Nếu lỗi "not supported for this document" (file .xlsx), dùng danh sách fallback
+      // Nếu lỗi "not supported for this document" (file .xlsx), thử dùng Drive API
       if (apiError.message?.includes('not supported for this document')) {
-        console.log('⚠️ File .xlsx không hỗ trợ spreadsheets.get(), dùng danh sách fallback')
-        // Không throw error, để code tiếp tục dùng danh sách fallback
+        console.log('⚠️ File .xlsx không hỗ trợ spreadsheets.get(), thử dùng Drive API...')
+        
+        try {
+          // Thử dùng Drive API để export file và lấy thông tin
+          // Hoặc thử đọc từng sheet để xem sheet nào tồn tại
+          // Cách tốt nhất: thử đọc cell A1 từ nhiều sheet có thể có
+          // Nhưng cách này không hiệu quả nếu có nhiều sheet
+          
+          // Thử cách khác: dùng Drive API để lấy file metadata
+          // Nhưng Drive API không trả về danh sách sheet
+          
+          // Cách tốt nhất: thử đọc từng sheet từ danh sách có thể có
+          // và chỉ trả về những sheet đọc được
+          console.log('⚠️ Đang thử đọc từng sheet để lấy danh sách...')
+          
+          // Danh sách sheet có thể có (mở rộng để bao gồm nhiều khả năng)
+          // Bao gồm cả các biến thể tên có thể có
+          const possibleSheets = [
+            'Lạc Vân', 'Quảng Lạc', 'Phùng Thượng', 'Thạch Bình 2', 'Trại Ngọc',
+            'Phú Sơn', 'Văn Phú 1', 'Đức Long', 'Xích Thổ', 'Yên Quang',
+            'Rịa', 'Rịa XGS', 'Rịa nhu', 'Rịa XG', 'Ỷ Na', 'Nho Quan XGS', 'Ỷ Na XGS',
+            'Quỳnh Sơn', 'Thanh Lạc', 'Nho Quan 1', 'Nho Quan 2', 'Phú Long',
+            'Thôn Ngải', 'Thạch Bình 1', 'Cúc Phương', 'Sơn Lai', 'Đồng Phong',
+            'Trung Đông', 'Gia Thủy', 'Kỳ Phú', 'Văn Phú 2', 'Quỳnh Lưu'
+          ]
+          
+          // Thử đọc từng sheet để xem sheet nào tồn tại
+          // Sử dụng Promise.all để đọc song song (nhanh hơn)
+          const sheetChecks = await Promise.allSettled(
+            possibleSheets.map(async (sheetName, index) => {
+              try {
+                // Thử đọc cell A1 từ sheet này (với cả 2 cách: có và không có dấu nháy)
+                try {
+                  await sheets.spreadsheets.values.get({
+                    spreadsheetId,
+                    range: `'${sheetName}'!A1`,
+                  })
+                } catch (e1: any) {
+                  // Thử không có dấu nháy
+                  await sheets.spreadsheets.values.get({
+                    spreadsheetId,
+                    range: `${sheetName}!A1`,
+                  })
+                }
+                // Nếu đọc được, sheet tồn tại
+                return { title: sheetName, sheetId: index, exists: true }
+              } catch (e: any) {
+                // Nếu lỗi "not found" hoặc "Unable to parse", sheet không tồn tại
+                return { title: sheetName, sheetId: index, exists: false }
+              }
+            })
+          )
+          
+          // Lọc ra những sheet tồn tại
+          const existingSheets = sheetChecks
+            .filter((result): result is PromiseFulfilledResult<{ title: string; sheetId: number; exists: boolean }> => 
+              result.status === 'fulfilled' && result.value.exists
+            )
+            .map(result => ({
+              title: result.value.title,
+              sheetId: result.value.sheetId,
+            }))
+          
+          if (existingSheets.length > 0) {
+            sheetList = existingSheets
+            console.log('✅ Lấy danh sách sheet bằng cách thử đọc từng sheet:', sheetList.map(s => s.title))
+          } else {
+            console.warn('⚠️ Không tìm thấy sheet nào từ danh sách có thể có')
+          }
+        } catch (driveError: any) {
+          console.error('⚠️ Lỗi khi thử lấy danh sách sheet:', driveError.message)
+          // Tiếp tục với danh sách fallback
+        }
       } else {
         // Nếu lỗi khác, throw lại
         throw apiError
