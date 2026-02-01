@@ -59,6 +59,13 @@ export async function GET() {
         
         console.log('✅ Lấy danh sách sheet thành công từ Google Sheets API:', sheetList.map(s => s.title))
         console.log(`📊 Tổng số sheet: ${sheetList.length}`)
+        console.log('📋 Chi tiết sheets:', JSON.stringify(sheetList, null, 2))
+        
+        // Nếu đã lấy được danh sách từ API, return ngay (không fallback)
+        if (sheetList.length > 0) {
+          const filteredSheetList = sheetList.filter(sheet => sheet.title && sheet.title.trim() !== '')
+          return NextResponse.json({ sheets: filteredSheetList })
+        }
       } else {
         console.warn('⚠️ Không có sheet nào trong file')
       }
