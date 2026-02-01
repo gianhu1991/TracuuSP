@@ -8,13 +8,10 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    'Arial', sans-serif;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: 'liga' off;
-  text-rendering: optimizeLegibility;
+  text-rendering: optimizeSpeed;
 }
 
 body {
@@ -108,23 +105,27 @@ h1 {
   cursor: pointer;
   color: #2c3e50;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  font-family: inherit;
-  letter-spacing: normal;
-  word-spacing: normal;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  letter-spacing: 0;
+  word-spacing: 0;
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .form-group select {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-  text-rendering: auto;
-  -webkit-font-smoothing: antialiased;
+  font-variant-ligatures: none;
+  font-feature-settings: normal;
 }
 
 .form-group select option {
   padding: 10px;
-  font-family: inherit;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
   font-size: 15px;
   white-space: normal;
   word-wrap: break-word;
+  letter-spacing: 0;
+  font-variant-ligatures: none;
 }
 
 .form-group input:focus,
