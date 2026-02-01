@@ -201,7 +201,17 @@ export async function POST(request: NextRequest) {
         matchedRowsCount++
         
         // Chỉ thêm nếu có Spliter cấp 2 (cột I = index 8) và trạng thái là "Đã vẽ" (cột K = index 10)
-        const trangThai = (trangThaiIndex !== -1 && row[trangThaiIndex] ? row[trangThaiIndex] : '').toString().trim()
+        // Thử đọc từ cả index 9 và 10 vì có thể cột Trạng thái ở vị trí khác
+        let trangThai = ''
+        if (trangThaiIndex !== -1 && row[trangThaiIndex]) {
+          trangThai = row[trangThaiIndex].toString().trim()
+        } else if (row[10]) {
+          // Fallback: thử index 10 (cột K)
+          trangThai = row[10].toString().trim()
+        } else if (row[9]) {
+          // Fallback: thử index 9 (cột J)
+          trangThai = row[9].toString().trim()
+        }
         
         // Ưu tiên lấy từ cột I (index 8 hoặc spliterCap2NameIndex)
         let spliterCap2Name = ''
@@ -221,19 +231,26 @@ export async function POST(request: NextRequest) {
         // Debug log cho TẤT CẢ các dòng khớp OLT/Slot/Port - dùng console.error để đảm bảo hiển thị
         console.error(`[SEARCH] Row ${i} MATCHED:`, JSON.stringify({
           rowIndex: i,
-          olt: currentOlt,
-          slot: currentSlot,
-          port: currentPort,
+          searchParams: { olt, slot, port },
+          rowValues: {
+            olt: currentOlt,
+            slot: currentSlot,
+            port: currentPort,
+          },
           spliterCap2Name: spliterCap2Name || '(empty)',
           trangThai: trangThai || '(empty)',
           isDaVe,
-          spliterCap2NameIndex,
-          trangThaiIndex,
-          rowIndex8: row[8] || '(empty)',
-          rowIndex9: row[9] || '(empty)',
-          rowIndex10: row[10] || '(empty)',
+          indexes: {
+            spliterCap2NameIndex,
+            trangThaiIndex,
+          },
+          rawValues: {
+            rowIndex8: row[8] || '(empty)',
+            rowIndex9: row[9] || '(empty)',
+            rowIndex10: row[10] || '(empty)',
+          },
           willAddToResults: isDaVe && spliterCap2Name ? 'YES' : 'NO',
-          reason: !isDaVe ? 'Status is not "Đã vẽ"' : !spliterCap2Name ? 'No Spliter cấp 2 name' : 'OK'
+          reason: !isDaVe ? `Status "${trangThai}" is not "Đã vẽ"` : !spliterCap2Name ? 'No Spliter cấp 2 name' : 'OK'
         }))
         
         if (isDaVe && spliterCap2Name) {
