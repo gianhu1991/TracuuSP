@@ -369,34 +369,43 @@ h1 {
     padding-bottom: 12px;
   }
 
-  .results-table {
-    font-size: 14px;
-    display: block;
+  .results-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 
-  .results-table thead {
-    display: table-header-group;
+  .results-table {
+    font-size: 13px;
+    min-width: 100%;
+    width: max-content;
   }
 
-  .results-table tbody {
-    display: table-row-group;
+  .results-table th {
+    padding: 12px 8px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
-  .results-table tr {
-    display: table-row;
-  }
-
-  .results-table th,
   .results-table td {
-    padding: 12px 10px;
-    display: table-cell;
+    padding: 12px 8px;
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .results-table tbody tr:hover {
-    transform: none;
-    box-shadow: none;
+  .results-table td:first-child {
+    max-width: 250px;
+  }
+
+  .copy-button {
+    padding: 8px 14px;
+    font-size: 12px;
+    white-space: nowrap;
   }
 
   .copy-button {
