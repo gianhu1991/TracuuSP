@@ -21,13 +21,14 @@ interface Sheet {
 }
 
 export default function Home() {
+  const [toKyThuat, setToKyThuat] = useState('')
   const [olt, setOlt] = useState('')
   const [slot, setSlot] = useState('')
   const [port, setPort] = useState('')
   const [sheets, setSheets] = useState<Sheet[]>([])
   const [slots, setSlots] = useState<string[]>([])
   const [ports, setPorts] = useState<string[]>([])
-  const [loadingSheets, setLoadingSheets] = useState(true)
+  const [loadingSheets, setLoadingSheets] = useState(false)
   const [loadingSlotsPorts, setLoadingSlotsPorts] = useState(false)
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,16 +36,27 @@ export default function Home() {
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [showDebug, setShowDebug] = useState(false)
 
-  // Load danh sách sheet khi component mount
+  // Load danh sách sheet khi chọn Tổ kỹ thuật
   useEffect(() => {
-    fetchSheets()
-  }, [])
+    if (toKyThuat) {
+      fetchSheets()
+    } else {
+      setSheets([])
+      setOlt('')
+      setSlot('')
+      setPort('')
+      setSlots([])
+      setPorts([])
+    }
+  }, [toKyThuat])
 
   const fetchSheets = async () => {
+    if (!toKyThuat) return
+    
     setLoadingSheets(true)
     try {
       // Thêm cache-busting để tránh cache
-      const response = await fetch(`/api/sheets?t=${Date.now()}`)
+      const response = await fetch(`/api/sheets?toKyThuat=${encodeURIComponent(toKyThuat)}&t=${Date.now()}`)
       const data = await response.json()
         
         if (!response.ok) {
@@ -53,6 +65,12 @@ export default function Home() {
         
         setSheets(data.sheets || [])
         setError('') // Clear error nếu thành công
+        // Reset OLT, Slot, Port khi load sheets mới
+        setOlt('')
+        setSlot('')
+        setPort('')
+        setSlots([])
+        setPorts([])
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách OLT'
         setError(errorMessage)
@@ -65,7 +83,7 @@ export default function Home() {
   // Load danh sách Slot và Port khi chọn OLT
   useEffect(() => {
     const fetchSlotsPorts = async () => {
-      if (!olt) {
+      if (!olt || !toKyThuat) {
         setSlots([])
         setPorts([])
         setSlot('')
@@ -83,7 +101,7 @@ export default function Home() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ olt }),
+          body: JSON.stringify({ olt, toKyThuat }),
         })
 
         const data = await response.json()
@@ -115,10 +133,15 @@ export default function Home() {
     }
     
     fetchSlotsPorts()
-  }, [olt])
+  }, [olt, toKyThuat])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!toKyThuat) {
+      setError('Vui lòng chọn Tổ kỹ thuật')
+      return
+    }
     
     if (!olt || !slot || !port) {
       setError('Vui lòng nhập đầy đủ thông tin OLT, Slot và Port')
@@ -135,7 +158,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ olt, slot, port }),
+        body: JSON.stringify({ olt, slot, port, toKyThuat }),
       })
 
       if (!response.ok) {
@@ -184,6 +207,20 @@ export default function Home() {
       
       <form onSubmit={handleSearch} className="search-form">
         <div className="form-group">
+          <label htmlFor="toKyThuat">Tổ kỹ thuật:</label>
+          <select
+            id="toKyThuat"
+            value={toKyThuat}
+            onChange={(e) => setToKyThuat(e.target.value)}
+            required
+          >
+            <option value="">-- Chọn Tổ kỹ thuật --</option>
+            <option value="Nho Quan">Tổ KT Nho Quan</option>
+            <option value="Gia Viễn">Tổ KT Gia Viễn</option>
+          </select>
+        </div>
+        
+        <div className="form-group">
           <label htmlFor="olt">OLT:</label>
           <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
             <select
@@ -191,7 +228,7 @@ export default function Home() {
               value={olt}
               onChange={(e) => setOlt(e.target.value)}
               required
-              disabled={loadingSheets}
+              disabled={loadingSheets || !toKyThuat}
               style={{ flex: 1 }}
             >
               <option value="">-- Chọn OLT --</option>
@@ -204,14 +241,14 @@ export default function Home() {
             <button
               type="button"
               onClick={fetchSheets}
-              disabled={loadingSheets}
+              disabled={loadingSheets || !toKyThuat}
               style={{ 
                 padding: '8px 12px', 
                 background: '#6c5ce7', 
                 color: 'white', 
                 border: 'none', 
                 borderRadius: '4px',
-                cursor: loadingSheets ? 'not-allowed' : 'pointer',
+                cursor: (loadingSheets || !toKyThuat) ? 'not-allowed' : 'pointer',
                 fontSize: '12px',
                 whiteSpace: 'nowrap'
               }}
@@ -230,7 +267,7 @@ export default function Home() {
               value={slot}
               onChange={(e) => setSlot(e.target.value)}
               required
-              disabled={!olt || loadingSlotsPorts}
+              disabled={!olt || !toKyThuat || loadingSlotsPorts}
             >
               <option value="">-- Chọn Slot --</option>
               {slots.map((s) => (
@@ -247,7 +284,7 @@ export default function Home() {
               onChange={(e) => setSlot(e.target.value)}
               placeholder="Nhập Slot (ví dụ: 3)"
               required
-              disabled={!olt || loadingSlotsPorts}
+              disabled={!olt || !toKyThuat || loadingSlotsPorts}
             />
           )}
         </div>
@@ -260,7 +297,7 @@ export default function Home() {
               value={port}
               onChange={(e) => setPort(e.target.value)}
               required
-              disabled={!olt || loadingSlotsPorts}
+              disabled={!olt || !toKyThuat || loadingSlotsPorts}
             >
               <option value="">-- Chọn Port --</option>
               {ports.map((p) => (
@@ -277,7 +314,7 @@ export default function Home() {
               onChange={(e) => setPort(e.target.value)}
               placeholder="Nhập Port (ví dụ: 0)"
               required
-              disabled={!olt || loadingSlotsPorts}
+              disabled={!olt || !toKyThuat || loadingSlotsPorts}
             />
           )}
         </div>

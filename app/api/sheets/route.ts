@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
 import { drive_v3 } from 'googleapis'
 
@@ -6,15 +6,36 @@ import { drive_v3 } from 'googleapis'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function GET() {
+// Helper function để lấy Sheet ID dựa trên Tổ kỹ thuật
+function getSheetId(toKyThuat: string | null): string | null {
+  if (toKyThuat === 'Nho Quan') {
+    return process.env.GOOGLE_SHEET_ID_NHO_QUAN || null
+  } else if (toKyThuat === 'Gia Viễn') {
+    return process.env.GOOGLE_SHEET_ID_GIA_VIEN || null
+  }
+  return null
+}
+
+export async function GET(request: NextRequest) {
   try {
-    // Lấy thông tin từ biến môi trường
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID
+    // Lấy query parameter toKyThuat
+    const searchParams = request.nextUrl.searchParams
+    const toKyThuat = searchParams.get('toKyThuat')
+    
+    if (!toKyThuat) {
+      return NextResponse.json(
+        { error: 'Vui lòng cung cấp Tổ kỹ thuật' },
+        { status: 400 }
+      )
+    }
+    
+    // Lấy Sheet ID dựa trên Tổ kỹ thuật
+    const spreadsheetId = getSheetId(toKyThuat)
     const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
 
     if (!spreadsheetId || !credentials) {
       return NextResponse.json(
-        { error: 'Cấu hình Google Sheets chưa được thiết lập' },
+        { error: `Cấu hình Google Sheets cho Tổ KT ${toKyThuat} chưa được thiết lập. Vui lòng kiểm tra biến môi trường GOOGLE_SHEET_ID_${toKyThuat.toUpperCase().replace(' ', '_')}` },
         { status: 500 }
       )
     }

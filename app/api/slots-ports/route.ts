@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
 
+// Helper function để lấy Sheet ID dựa trên Tổ kỹ thuật
+function getSheetId(toKyThuat: string | null): string | null {
+  if (toKyThuat === 'Nho Quan') {
+    return process.env.GOOGLE_SHEET_ID_NHO_QUAN || null
+  } else if (toKyThuat === 'Gia Viễn') {
+    return process.env.GOOGLE_SHEET_ID_GIA_VIEN || null
+  }
+  return null
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { olt } = await request.json()
+    const { olt, toKyThuat } = await request.json()
 
     if (!olt) {
       return NextResponse.json(
@@ -11,14 +21,21 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    
+    if (!toKyThuat) {
+      return NextResponse.json(
+        { error: 'Vui lòng cung cấp Tổ kỹ thuật' },
+        { status: 400 }
+      )
+    }
 
-    // Lấy thông tin từ biến môi trường
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID
+    // Lấy Sheet ID dựa trên Tổ kỹ thuật
+    const spreadsheetId = getSheetId(toKyThuat)
     const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
 
     if (!spreadsheetId || !credentials) {
       return NextResponse.json(
-        { error: 'Cấu hình Google Sheets chưa được thiết lập' },
+        { error: `Cấu hình Google Sheets cho Tổ KT ${toKyThuat} chưa được thiết lập. Vui lòng kiểm tra biến môi trường GOOGLE_SHEET_ID_${toKyThuat.toUpperCase().replace(' ', '_')}` },
         { status: 500 }
       )
     }

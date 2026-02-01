@@ -53,19 +53,23 @@ npm install
 3. Thêm email của service account (có dạng `xxx@xxx.iam.gserviceaccount.com`) với quyền **Viewer** (Người xem)
 4. Copy **Sheet ID** từ URL: `https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit`
 
-#### Bước 3: Cấu hình biến môi trường
+#### Bước 3: Chia sẻ Google Sheets với Service Account
+
+1. Mở Google Sheet cho **Tổ KT Nho Quan**
+2. Click **Share** (Chia sẻ)
+3. Thêm email của service account với quyền **Viewer** (Người xem)
+4. Copy **Sheet ID** từ URL: `https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit`
+5. Lặp lại bước 1-4 cho Google Sheet của **Tổ KT Gia Viễn**
+
+#### Bước 4: Cấu hình biến môi trường
 
 1. Copy file `.env.example` thành `.env.local`
 2. Điền các thông tin:
-   - `GOOGLE_SHEET_ID`: ID của Google Sheet
+   - `GOOGLE_SHEET_ID_NHO_QUAN`: ID của Google Sheet cho Tổ KT Nho Quan
+   - `GOOGLE_SHEET_ID_GIA_VIEN`: ID của Google Sheet cho Tổ KT Gia Viễn
    - `GOOGLE_SERVICE_ACCOUNT_KEY`: Copy toàn bộ nội dung file JSON key vào đây (dạng string)
 
-Hoặc có thể dùng các biến riêng lẻ:
-```env
-GOOGLE_SHEET_ID=your_sheet_id
-GOOGLE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
+**Lưu ý:** Cả 2 Google Sheet (Nho Quan và Gia Viễn) đều phải được chia sẻ với cùng một Service Account email.
 
 ### 3. Chạy ứng dụng
 
@@ -93,21 +97,25 @@ git push -u origin main
 2. Đăng nhập và click **New Project**
 3. Import repository từ GitHub
 4. Thêm các biến môi trường:
-   - `GOOGLE_SHEET_ID`: ID của Google Sheet
+   - `GOOGLE_SHEET_ID_NHO_QUAN`: ID của Google Sheet cho Tổ KT Nho Quan
+   - `GOOGLE_SHEET_ID_GIA_VIEN`: ID của Google Sheet cho Tổ KT Gia Viễn
    - `GOOGLE_SERVICE_ACCOUNT_KEY`: Nội dung file JSON key (dạng string)
 5. Click **Deploy**
 
 ### 3. Cấu hình biến môi trường trên Vercel
 
 Vào **Settings** > **Environment Variables** và thêm:
-- `GOOGLE_SHEET_ID`
+- `GOOGLE_SHEET_ID_NHO_QUAN`
+- `GOOGLE_SHEET_ID_GIA_VIEN`
 - `GOOGLE_SERVICE_ACCOUNT_KEY`
 
 ## Sử dụng
 
-1. Nhập thông tin **OLT**, **Slot** và **Port**
-2. Click **Tra cứu**
-3. Xem kết quả hiển thị trong bảng
+1. Chọn **Tổ kỹ thuật** (Tổ KT Nho Quan hoặc Tổ KT Gia Viễn)
+2. Chọn **OLT** từ danh sách (sẽ tự động load sau khi chọn Tổ kỹ thuật)
+3. Chọn **Slot** và **Port** (sẽ tự động load sau khi chọn OLT)
+4. Click **Tra cứu**
+5. Xem kết quả hiển thị trong bảng
 
 ## Công nghệ sử dụng
 
