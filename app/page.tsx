@@ -153,7 +153,7 @@ export default function Home() {
   return (
     <div className="container">
       <div className="header">
-        <h1>Modul tra cứu Spliter cấp 2</h1>
+        <h1>Module tra cứu Spliter cấp 2</h1>
         <p className="subtitle">Hệ thống tra cứu thông tin Spliter cấp 2 theo OLT, Slot và Port</p>
       </div>
       

@@ -238,6 +238,13 @@ h1 {
   font-size: 15px;
 }
 
+.results-table td:first-child {
+  max-width: 500px;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
 .results-table tbody tr {
   transition: all 0.2s ease;
 }
@@ -392,14 +399,19 @@ h1 {
 
   .results-table td {
     padding: 12px 8px;
-    white-space: nowrap;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   .results-table td:first-child {
-    max-width: 250px;
+    max-width: none;
+    min-width: 200px;
+  }
+
+  .results-table td:last-child {
+    white-space: nowrap;
+    min-width: 100px;
   }
 
   .copy-button {
