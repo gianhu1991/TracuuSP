@@ -36,39 +36,64 @@ export async function GET() {
 
     const sheets = google.sheets({ version: 'v4', auth })
 
-    // Vì file là .xlsx được upload, spreadsheets.get() không hoạt động
-    // Kiểm tra quyền truy cập bằng cách đọc một cell từ sheet đầu tiên
-    // Nếu không đọc được, vẫn tiếp tục với danh sách hardcode (có thể sheet tên khác)
+    // Thử lấy danh sách sheet thực tế từ Google Sheets API
+    let sheetList: { title: string; sheetId: number }[] = []
+    
     try {
-      await sheets.spreadsheets.values.get({
+      // Thử dùng spreadsheets.get() để lấy metadata (bao gồm danh sách sheets)
+      const spreadsheetInfo = await sheets.spreadsheets.get({
         spreadsheetId,
-        range: "'Lạc Vân'!A1",
       })
-    } catch (permissionError: any) {
-      if (permissionError.message?.includes('PERMISSION_DENIED') || permissionError.message?.includes('permission')) {
+      
+      if (spreadsheetInfo.data.sheets) {
+        sheetList = spreadsheetInfo.data.sheets
+          .map((sheet: any) => ({
+            title: sheet.properties?.title || '',
+            sheetId: sheet.properties?.sheetId || 0,
+          }))
+          .filter((sheet: any) => sheet.title && sheet.title.trim() !== '')
+        
+        console.log('✅ Lấy danh sách sheet thành công từ API:', sheetList.map(s => s.title))
+      }
+    } catch (apiError: any) {
+      console.error('⚠️ Không thể lấy danh sách sheet từ API:', apiError.message)
+      
+      // Nếu lỗi PERMISSION_DENIED, throw error
+      if (apiError.message?.includes('PERMISSION_DENIED') || apiError.message?.includes('permission')) {
         throw new Error('PERMISSION_DENIED: Không có quyền truy cập. Vui lòng chia sẻ Sheet với Service Account: tracuusp-service@tracuusp.iam.gserviceaccount.com')
       }
-      // Nếu lỗi khác (như sheet không tồn tại hoặc range không đúng), vẫn tiếp tục
-      // Vì file Excel có thể có cấu trúc khác
-      console.log('Permission check note (non-critical):', permissionError.message)
+      
+      // Nếu lỗi "not supported for this document" (file .xlsx), thử cách khác
+      if (apiError.message?.includes('not supported for this document')) {
+        console.log('⚠️ File .xlsx không hỗ trợ spreadsheets.get(), thử cách khác...')
+        
+        // Thử đọc từ một số sheet phổ biến để lấy danh sách
+        // Hoặc có thể dùng cách thử đọc từng sheet một
+        // Nhưng cách này không hiệu quả, nên thông báo cho user
+        throw new Error('File Excel (.xlsx) được upload không hỗ trợ lấy danh sách sheet tự động. Vui lòng chuyển đổi file sang Google Sheets format (File > Save as Google Sheets) hoặc cập nhật code với danh sách sheet mới.')
+      }
+      
+      // Nếu lỗi khác, throw lại
+      throw apiError
     }
-
-    // Vì file là .xlsx được upload, dùng danh sách sheets đã biết
-    // Danh sách sheets từ Google Sheet (từ thông tin đã biết)
-    const knownSheets = [
-      'Lạc Vân', 'Quảng Lạc', 'Phùng Thượng', 'Thạch Bình 2', 'Trại Ngọc',
-      'Phú Sơn', 'Văn Phú 1', 'Đức Long', 'Xích Thổ', 'Yên Quang',
-      'Rịa', 'Rịa XGS', 'Ỷ Na', 'Nho Quan XGS', 'Ỷ Na XGS',
-      'Quỳnh Sơn', 'Thanh Lạc', 'Nho Quan 1', 'Phú Long', 'Nho Quan 2',
-      'Thôn Ngải', 'Thạch Bình 1', 'Cúc Phương', 'Sơn Lai', 'Đồng Phong',
-      'Trung Đông', 'Gia Thủy', 'Kỳ Phú', 'Văn Phú 2', 'Quỳnh Lưu'
-    ]
     
-    // Tạo danh sách sheets với sheetId giả định
-    const sheetList = knownSheets.map((title, index) => ({
-      title,
-      sheetId: index,
-    }))
+    // Nếu không lấy được danh sách, dùng danh sách fallback (để tránh lỗi)
+    if (sheetList.length === 0) {
+      console.warn('⚠️ Không lấy được danh sách sheet, dùng danh sách fallback')
+      const knownSheets = [
+        'Lạc Vân', 'Quảng Lạc', 'Phùng Thượng', 'Thạch Bình 2', 'Trại Ngọc',
+        'Phú Sơn', 'Văn Phú 1', 'Đức Long', 'Xích Thổ', 'Yên Quang',
+        'Rịa', 'Rịa XGS', 'Ỷ Na', 'Nho Quan XGS', 'Ỷ Na XGS',
+        'Quỳnh Sơn', 'Thanh Lạc', 'Nho Quan 1', 'Phú Long', 'Nho Quan 2',
+        'Thôn Ngải', 'Thạch Bình 1', 'Cúc Phương', 'Sơn Lai', 'Đồng Phong',
+        'Trung Đông', 'Gia Thủy', 'Kỳ Phú', 'Văn Phú 2', 'Quỳnh Lưu'
+      ]
+      
+      sheetList = knownSheets.map((title, index) => ({
+        title,
+        sheetId: index,
+      }))
+    }
     
     // Lọc bỏ các sheet trống hoặc không có tên
     const filteredSheetList = sheetList.filter(sheet => sheet.title && sheet.title.trim() !== '')
