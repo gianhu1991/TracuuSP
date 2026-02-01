@@ -63,27 +63,25 @@ export async function GET() {
         throw new Error('PERMISSION_DENIED: Không có quyền truy cập. Vui lòng chia sẻ Sheet với Service Account: tracuusp-service@tracuusp.iam.gserviceaccount.com')
       }
       
-      // Nếu lỗi "not supported for this document" (file .xlsx), thử cách khác
+      // Nếu lỗi "not supported for this document" (file .xlsx), dùng danh sách fallback
       if (apiError.message?.includes('not supported for this document')) {
-        console.log('⚠️ File .xlsx không hỗ trợ spreadsheets.get(), thử cách khác...')
-        
-        // Thử đọc từ một số sheet phổ biến để lấy danh sách
-        // Hoặc có thể dùng cách thử đọc từng sheet một
-        // Nhưng cách này không hiệu quả, nên thông báo cho user
-        throw new Error('File Excel (.xlsx) được upload không hỗ trợ lấy danh sách sheet tự động. Vui lòng chuyển đổi file sang Google Sheets format (File > Save as Google Sheets) hoặc cập nhật code với danh sách sheet mới.')
+        console.log('⚠️ File .xlsx không hỗ trợ spreadsheets.get(), dùng danh sách fallback')
+        // Không throw error, để code tiếp tục dùng danh sách fallback
+      } else {
+        // Nếu lỗi khác, throw lại
+        throw apiError
       }
-      
-      // Nếu lỗi khác, throw lại
-      throw apiError
     }
     
     // Nếu không lấy được danh sách, dùng danh sách fallback (để tránh lỗi)
     if (sheetList.length === 0) {
       console.warn('⚠️ Không lấy được danh sách sheet, dùng danh sách fallback')
+      // TODO: Cập nhật danh sách sheet này khi user đổi tên sheet trong Google Sheet
+      // Nếu file là .xlsx, danh sách này sẽ được dùng làm fallback
       const knownSheets = [
         'Lạc Vân', 'Quảng Lạc', 'Phùng Thượng', 'Thạch Bình 2', 'Trại Ngọc',
         'Phú Sơn', 'Văn Phú 1', 'Đức Long', 'Xích Thổ', 'Yên Quang',
-        'Rịa', 'Rịa XGS', 'Ỷ Na', 'Nho Quan XGS', 'Ỷ Na XGS',
+        'Rịa', 'Rịa XGS', 'Rịa nhu', 'Ỷ Na', 'Nho Quan XGS', 'Ỷ Na XGS',
         'Quỳnh Sơn', 'Thanh Lạc', 'Nho Quan 1', 'Phú Long', 'Nho Quan 2',
         'Thôn Ngải', 'Thạch Bình 1', 'Cúc Phương', 'Sơn Lai', 'Đồng Phong',
         'Trung Đông', 'Gia Thủy', 'Kỳ Phú', 'Văn Phú 2', 'Quỳnh Lưu'
