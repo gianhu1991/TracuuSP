@@ -105,7 +105,22 @@ export async function POST(request: NextRequest) {
           break
         }
       }
+      // Nếu không tìm thấy cột thứ 2, dùng cột đầu tiên (cột H)
+      if (spliterCap2NameIndex === -1) {
+        spliterCap2NameIndex = spliterCap2Index
+      }
     }
+    
+    // Debug: Log các index tìm được
+    console.log('Column indexes:', {
+      oltIndex,
+      slotIndex,
+      portIndex,
+      spliterCap2Index,
+      spliterCap2NameIndex,
+      trangThaiIndex,
+      headers: headers.map((h: string, i: number) => `${i}: ${h}`)
+    })
 
     // Lọc dữ liệu theo OLT, Slot, Port
     const results: any[] = []
@@ -160,12 +175,18 @@ export async function POST(request: NextRequest) {
         normalizedSlot === searchSlot &&
         normalizedPort === searchPort
       ) {
-        // Chỉ thêm nếu có Spliter cấp 2 (cột H) và trạng thái là "Đã vẽ"
-        const trangThai = row[trangThaiIndex] || 'chưa có'
-        const spliterCap2Name = row[spliterCap2NameIndex] || row[spliterCap2Index] || ''
+        // Chỉ thêm nếu có Spliter cấp 2 (cột H hoặc I) và trạng thái là "Đã vẽ"
+        const trangThai = (row[trangThaiIndex] || '').toString().trim()
+        // Ưu tiên lấy từ cột I (spliterCap2NameIndex), nếu không có thì lấy từ cột H (spliterCap2Index)
+        const spliterCap2Name = spliterCap2NameIndex !== -1 && row[spliterCap2NameIndex] 
+          ? row[spliterCap2NameIndex].toString().trim()
+          : (row[spliterCap2Index] ? row[spliterCap2Index].toString().trim() : '')
         
         // Chỉ lấy kết quả có trạng thái "Đã vẽ" và có tên Spliter cấp 2
-        if (trangThai === 'Đã vẽ' && spliterCap2Name) {
+        // So sánh linh hoạt hơn (trim và không phân biệt hoa thường)
+        const isDaVe = trangThai.toLowerCase().includes('đã vẽ') || trangThai.toLowerCase().includes('da ve')
+        
+        if (isDaVe && spliterCap2Name) {
           results.push({
             olt: currentOlt,
             slot: currentSlot,
