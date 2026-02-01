@@ -43,11 +43,13 @@ export async function GET() {
     
     try {
       // Thử dùng spreadsheets.get() để lấy metadata (bao gồm danh sách sheets)
+      // Đây là cách chính xác nhất và tự động nhất cho Google Sheets format
+      console.log('🔍 Đang thử lấy danh sách sheet từ Google Sheets API...')
       const spreadsheetInfo = await sheets.spreadsheets.get({
         spreadsheetId,
       })
       
-      if (spreadsheetInfo.data.sheets) {
+      if (spreadsheetInfo.data.sheets && spreadsheetInfo.data.sheets.length > 0) {
         sheetList = spreadsheetInfo.data.sheets
           .map((sheet: any) => ({
             title: sheet.properties?.title || '',
@@ -55,10 +57,14 @@ export async function GET() {
           }))
           .filter((sheet: any) => sheet.title && sheet.title.trim() !== '')
         
-        console.log('✅ Lấy danh sách sheet thành công từ Sheets API:', sheetList.map(s => s.title))
+        console.log('✅ Lấy danh sách sheet thành công từ Google Sheets API:', sheetList.map(s => s.title))
+        console.log(`📊 Tổng số sheet: ${sheetList.length}`)
+      } else {
+        console.warn('⚠️ Không có sheet nào trong file')
       }
     } catch (apiError: any) {
       console.error('⚠️ Không thể lấy danh sách sheet từ Sheets API:', apiError.message)
+      console.error('⚠️ Error details:', JSON.stringify(apiError, null, 2))
       
       // Nếu lỗi PERMISSION_DENIED, throw error
       if (apiError.message?.includes('PERMISSION_DENIED') || apiError.message?.includes('permission')) {
@@ -84,37 +90,56 @@ export async function GET() {
           
           // Danh sách sheet có thể có (mở rộng để bao gồm nhiều khả năng)
           // Bao gồm cả các biến thể tên có thể có
+          // Lưu ý: Nếu đổi tên sheet thành tên hoàn toàn mới, cần thêm vào danh sách này
           const possibleSheets = [
             'Lạc Vân', 'Quảng Lạc', 'Phùng Thượng', 'Thạch Bình 2', 'Trại Ngọc',
             'Phú Sơn', 'Văn Phú 1', 'Đức Long', 'Xích Thổ', 'Yên Quang',
-            'Rịa', 'Rịa XGS', 'Rịa nhu', 'Rịa XG', 'Ỷ Na', 'Nho Quan XGS', 'Ỷ Na XGS',
+            'Rịa', 'Rịa XGS', 'Rịa nhu', 'Rịa XG', 'Rịa XG S', 'Ria XGS', 'Ria XG',
+            'Ỷ Na', 'Nho Quan XGS', 'Ỷ Na XGS', 'Nho Quan GX', 'Nho Quan XG',
             'Quỳnh Sơn', 'Thanh Lạc', 'Nho Quan 1', 'Nho Quan 2', 'Phú Long',
             'Thôn Ngải', 'Thạch Bình 1', 'Cúc Phương', 'Sơn Lai', 'Đồng Phong',
-            'Trung Đông', 'Gia Thủy', 'Kỳ Phú', 'Văn Phú 2', 'Quỳnh Lưu'
+            'Trung Đông', 'Gia Thủy', 'Kỳ Phú', 'Văn Phú 2', 'Quỳnh Lưu',
+            // Thêm các sheet có thể có khác (nếu có)
+            'Sheet1', 'Sheet2', 'Sheet3', 'Data', 'Data1', 'Data2'
           ]
           
+          console.log('🔍 Đang thử phát hiện sheet từ danh sách có thể có:', possibleSheets.length, 'sheets')
+          
           // Thử đọc từng sheet để xem sheet nào tồn tại
-          // Sử dụng Promise.all để đọc song song (nhanh hơn)
+          // Sử dụng Promise.allSettled để đọc song song (nhanh hơn) và không bị lỗi khi một sheet không tồn tại
           const sheetChecks = await Promise.allSettled(
             possibleSheets.map(async (sheetName, index) => {
               try {
                 // Thử đọc cell A1 từ sheet này (với cả 2 cách: có và không có dấu nháy)
+                let readSuccess = false
                 try {
                   await sheets.spreadsheets.values.get({
                     spreadsheetId,
                     range: `'${sheetName}'!A1`,
                   })
+                  readSuccess = true
                 } catch (e1: any) {
                   // Thử không có dấu nháy
-                  await sheets.spreadsheets.values.get({
-                    spreadsheetId,
-                    range: `${sheetName}!A1`,
-                  })
+                  try {
+                    await sheets.spreadsheets.values.get({
+                      spreadsheetId,
+                      range: `${sheetName}!A1`,
+                    })
+                    readSuccess = true
+                  } catch (e2: any) {
+                    // Cả 2 cách đều lỗi, sheet không tồn tại
+                    readSuccess = false
+                  }
                 }
-                // Nếu đọc được, sheet tồn tại
-                return { title: sheetName, sheetId: index, exists: true }
+                
+                if (readSuccess) {
+                  console.log(`✅ Tìm thấy sheet: "${sheetName}"`)
+                  return { title: sheetName, sheetId: index, exists: true }
+                } else {
+                  return { title: sheetName, sheetId: index, exists: false }
+                }
               } catch (e: any) {
-                // Nếu lỗi "not found" hoặc "Unable to parse", sheet không tồn tại
+                // Nếu lỗi khác, sheet không tồn tại
                 return { title: sheetName, sheetId: index, exists: false }
               }
             })
@@ -133,8 +158,10 @@ export async function GET() {
           if (existingSheets.length > 0) {
             sheetList = existingSheets
             console.log('✅ Lấy danh sách sheet bằng cách thử đọc từng sheet:', sheetList.map(s => s.title))
+            console.log(`📊 Tổng số sheet tìm thấy: ${sheetList.length}/${possibleSheets.length}`)
           } else {
             console.warn('⚠️ Không tìm thấy sheet nào từ danh sách có thể có')
+            console.warn('💡 Gợi ý: 1) Kiểm tra tên sheet trong Google Sheet, 2) Thêm tên sheet mới vào danh sách possibleSheets trong code')
           }
         } catch (driveError: any) {
           console.error('⚠️ Lỗi khi thử lấy danh sách sheet:', driveError.message)
