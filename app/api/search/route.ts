@@ -122,11 +122,10 @@ export async function POST(request: NextRequest) {
       spliterCap2NameIndex = 8 // Cột I
     }
     
-    // Debug: Log request parameters và column indexes
-    console.log('=== SEARCH REQUEST ===')
-    console.log('Search params:', { olt, slot, port, sheetName: olt })
-    console.log('Total rows:', rows.length)
-    console.log('Column indexes:', {
+    // Debug: Log request parameters và column indexes - dùng console.error để đảm bảo hiển thị trên Vercel
+    console.error('[SEARCH] Request:', JSON.stringify({ olt, slot, port, sheetName: olt }))
+    console.error('[SEARCH] Total rows:', rows.length)
+    console.error('[SEARCH] Column indexes:', JSON.stringify({
       oltIndex,
       slotIndex,
       portIndex,
@@ -134,16 +133,15 @@ export async function POST(request: NextRequest) {
       spliterCap2NameIndex,
       trangThaiIndex,
       headers: headers.map((h: string, i: number) => `${i}: ${h || '(empty)'}`)
-    })
-    console.log('First 3 data rows:', rows.slice(1, 4).map((row: any[], idx: number) => ({
+    }))
+    console.error('[SEARCH] First 3 rows:', JSON.stringify(rows.slice(1, 4).map((row: any[], idx: number) => ({
       rowIndex: idx + 1,
-      olt: row[oltIndex],
-      slot: row[slotIndex],
-      port: row[portIndex],
-      spliterCap2: row[spliterCap2NameIndex] || row[spliterCap2Index] || row[8],
-      trangThai: row[trangThaiIndex] || row[10],
-      fullRow: row.slice(0, 12)
-    })))
+      olt: row[oltIndex] || '(empty)',
+      slot: row[slotIndex] || '(empty)',
+      port: row[portIndex] || '(empty)',
+      spliterCap2: row[spliterCap2NameIndex] || row[spliterCap2Index] || row[8] || '(empty)',
+      trangThai: row[trangThaiIndex] || row[10] || '(empty)',
+    }))))
 
     // Lọc dữ liệu theo OLT, Slot, Port
     const results: any[] = []
@@ -220,8 +218,8 @@ export async function POST(request: NextRequest) {
         // So sánh linh hoạt hơn (trim và không phân biệt hoa thường)
         const isDaVe = trangThai.toLowerCase().includes('đã vẽ') || trangThai.toLowerCase().includes('da ve')
         
-        // Debug log cho TẤT CẢ các dòng khớp OLT/Slot/Port
-        console.log(`[Row ${i}] Matched OLT/Slot/Port:`, {
+        // Debug log cho TẤT CẢ các dòng khớp OLT/Slot/Port - dùng console.error để đảm bảo hiển thị
+        console.error(`[SEARCH] Row ${i} MATCHED:`, JSON.stringify({
           rowIndex: i,
           olt: currentOlt,
           slot: currentSlot,
@@ -232,10 +230,11 @@ export async function POST(request: NextRequest) {
           spliterCap2NameIndex,
           trangThaiIndex,
           rowIndex8: row[8] || '(empty)',
+          rowIndex9: row[9] || '(empty)',
           rowIndex10: row[10] || '(empty)',
           willAddToResults: isDaVe && spliterCap2Name ? 'YES' : 'NO',
           reason: !isDaVe ? 'Status is not "Đã vẽ"' : !spliterCap2Name ? 'No Spliter cấp 2 name' : 'OK'
-        })
+        }))
         
         if (isDaVe && spliterCap2Name) {
           filteredByStatusCount++
@@ -255,15 +254,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('=== SEARCH RESULTS ===')
-    console.log(`Total matched rows (OLT/Slot/Port): ${matchedRowsCount}`)
-    console.log(`Rows with "Đã vẽ" status: ${filteredByStatusCount}`)
-    console.log(`Final results count: ${results.length}`)
-    if (matchedRowsCount > 0 && results.length === 0) {
-      console.log('WARNING: Found matching rows but no results returned. Check status filtering logic.')
-    }
+    // Log kết quả - dùng console.error để đảm bảo hiển thị
+    console.error('[SEARCH] RESULTS:', JSON.stringify({
+      totalMatchedRows: matchedRowsCount,
+      rowsWithDaVe: filteredByStatusCount,
+      finalResultsCount: results.length,
+      warning: matchedRowsCount > 0 && results.length === 0 ? 'Found matching rows but no results returned' : null
+    }))
 
-    return NextResponse.json({ results })
+    return NextResponse.json({ 
+      results,
+      // Thêm debug info trong development
+      ...(process.env.NODE_ENV === 'development' ? {
+        debug: {
+          totalMatchedRows: matchedRowsCount,
+          rowsWithDaVe: filteredByStatusCount,
+          searchParams: { olt, slot, port }
+        }
+      } : {})
+    })
   } catch (error: any) {
     console.error('Error searching:', error)
     console.error('Error details:', JSON.stringify(error, null, 2))
