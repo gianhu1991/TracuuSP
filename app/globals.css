@@ -370,55 +370,33 @@ h1 {
   }
 
   .results-table {
+    font-size: 14px;
     display: block;
-    border: none;
-    box-shadow: none;
-    background: transparent;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .results-table thead {
-    display: none;
+    display: table-header-group;
   }
 
   .results-table tbody {
-    display: block;
+    display: table-row-group;
   }
 
   .results-table tr {
-    display: block;
-    background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    display: table-row;
   }
 
-  .results-table tr:last-child {
-    margin-bottom: 0;
-  }
-
+  .results-table th,
   .results-table td {
-    display: block;
-    padding: 12px 0;
-    border: none;
-    text-align: left;
-  }
-
-  .results-table td:before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #667eea;
-    display: block;
-    margin-bottom: 6px;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    padding: 12px 10px;
+    display: table-cell;
   }
 
   .results-table tbody tr:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transform: none;
+    box-shadow: none;
   }
 
   .copy-button {

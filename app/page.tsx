@@ -286,8 +286,8 @@ export default function Home() {
                 
                 return (
                   <tr key={index}>
-                    <td data-label="Danh sách S2 tìm thấy">{result.spliterCap2Name}</td>
-                    <td data-label="Hành động">
+                    <td>{result.spliterCap2Name}</td>
+                    <td>
                       <button
                         onClick={() => copyToClipboard(result.spliterCap2Name)}
                         className="copy-button"
