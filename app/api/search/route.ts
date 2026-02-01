@@ -84,18 +84,24 @@ export async function POST(request: NextRequest) {
     const headers = rows[0]
     
     // Tìm index của các cột
-    const oltIndex = headers.findIndex((h: string) => h.toLowerCase().includes('olt'))
-    const slotIndex = headers.findIndex((h: string) => h.toLowerCase().includes('slot'))
-    const portIndex = headers.findIndex((h: string) => h.toLowerCase().includes('port'))
-    const hopIndex = headers.findIndex((h: string) => h.toLowerCase().includes('hộp'))
-    const dayNhayIndex = headers.findIndex((h: string) => h.toLowerCase().includes('dây nhảy') || h.toLowerCase().includes('daynhay'))
-    const spliterCap1Index = headers.findIndex((h: string) => h.toLowerCase().includes('spliter cấp 1') || h.toLowerCase().includes('spliter cap 1'))
-    const capIndex = headers.findIndex((h: string) => h.toLowerCase().includes('cáp') || h.toLowerCase().includes('cap'))
-    const spliterCap2Index = headers.findIndex((h: string) => h.toLowerCase().includes('spliter cấp 2') || h.toLowerCase().includes('spliter cap 2'))
-    const trangThaiIndex = headers.findIndex((h: string) => h.toLowerCase().includes('trạng thái') || h.toLowerCase().includes('trang thai'))
+    const oltIndex = headers.findIndex((h: string) => h && h.toLowerCase().includes('olt'))
+    const slotIndex = headers.findIndex((h: string) => h && h.toLowerCase().includes('slot'))
+    const portIndex = headers.findIndex((h: string) => h && h.toLowerCase().includes('port'))
+    const hopIndex = headers.findIndex((h: string) => h && h.toLowerCase().includes('hộp'))
+    const dayNhayIndex = headers.findIndex((h: string) => h && (h.toLowerCase().includes('dây nhảy') || h.toLowerCase().includes('daynhay') || h.toLowerCase().includes('nhảy')))
+    const spliterCap1Index = headers.findIndex((h: string) => h && (h.toLowerCase().includes('spliter cấp 1') || h.toLowerCase().includes('spliter cap 1')))
+    const capIndex = headers.findIndex((h: string) => h && (h.toLowerCase().includes('cáp') || h.toLowerCase().includes('cap')))
+    const spliterCap2Index = headers.findIndex((h: string) => h && (h.toLowerCase().includes('spliter cấp 2') || h.toLowerCase().includes('spliter cap 2')))
+    let trangThaiIndex = headers.findIndex((h: string) => h && (h.toLowerCase().includes('trạng thái') || h.toLowerCase().includes('trang thai')))
 
-    // Xử lý cột Spliter cấp 2 thứ 2 (cột I trong mô tả)
-    // Nếu có 2 cột Spliter cấp 2, cột thứ 2 sẽ là cột có index cao hơn
+    // Fallback: Nếu không tìm thấy bằng tên, dùng index cố định
+    // Cột I (index 8) là "Spliter cấp 2", Cột K (index 10) là "Trạng thái"
+    if (trangThaiIndex === -1 && headers.length > 10) {
+      trangThaiIndex = 10 // Cột K
+    }
+
+    // Xử lý cột Spliter cấp 2 (cột I = index 8)
+    // Ưu tiên tìm bằng tên, nếu không có thì dùng index 8
     let spliterCap2NameIndex = -1
     if (spliterCap2Index !== -1) {
       // Tìm cột tiếp theo có chứa "spliter cấp 2"
@@ -111,7 +117,15 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Debug: Log các index tìm được
+    // Fallback: Nếu không tìm thấy bằng tên, dùng index 8 (cột I)
+    if (spliterCap2NameIndex === -1 && headers.length > 8) {
+      spliterCap2NameIndex = 8 // Cột I
+    }
+    
+    // Debug: Log request parameters và column indexes
+    console.log('=== SEARCH REQUEST ===')
+    console.log('Search params:', { olt, slot, port, sheetName: olt })
+    console.log('Total rows:', rows.length)
     console.log('Column indexes:', {
       oltIndex,
       slotIndex,
@@ -119,11 +133,22 @@ export async function POST(request: NextRequest) {
       spliterCap2Index,
       spliterCap2NameIndex,
       trangThaiIndex,
-      headers: headers.map((h: string, i: number) => `${i}: ${h}`)
+      headers: headers.map((h: string, i: number) => `${i}: ${h || '(empty)'}`)
     })
+    console.log('First 3 data rows:', rows.slice(1, 4).map((row: any[], idx: number) => ({
+      rowIndex: idx + 1,
+      olt: row[oltIndex],
+      slot: row[slotIndex],
+      port: row[portIndex],
+      spliterCap2: row[spliterCap2NameIndex] || row[spliterCap2Index] || row[8],
+      trangThai: row[trangThaiIndex] || row[10],
+      fullRow: row.slice(0, 12)
+    })))
 
     // Lọc dữ liệu theo OLT, Slot, Port
     const results: any[] = []
+    let matchedRowsCount = 0
+    let filteredByStatusCount = 0
     
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i]
@@ -175,18 +200,45 @@ export async function POST(request: NextRequest) {
         normalizedSlot === searchSlot &&
         normalizedPort === searchPort
       ) {
-        // Chỉ thêm nếu có Spliter cấp 2 (cột H hoặc I) và trạng thái là "Đã vẽ"
-        const trangThai = (row[trangThaiIndex] || '').toString().trim()
-        // Ưu tiên lấy từ cột I (spliterCap2NameIndex), nếu không có thì lấy từ cột H (spliterCap2Index)
-        const spliterCap2Name = spliterCap2NameIndex !== -1 && row[spliterCap2NameIndex] 
-          ? row[spliterCap2NameIndex].toString().trim()
-          : (row[spliterCap2Index] ? row[spliterCap2Index].toString().trim() : '')
+        matchedRowsCount++
+        
+        // Chỉ thêm nếu có Spliter cấp 2 (cột I = index 8) và trạng thái là "Đã vẽ" (cột K = index 10)
+        const trangThai = (trangThaiIndex !== -1 && row[trangThaiIndex] ? row[trangThaiIndex] : '').toString().trim()
+        
+        // Ưu tiên lấy từ cột I (index 8 hoặc spliterCap2NameIndex)
+        let spliterCap2Name = ''
+        if (spliterCap2NameIndex !== -1 && row[spliterCap2NameIndex]) {
+          spliterCap2Name = row[spliterCap2NameIndex].toString().trim()
+        } else if (spliterCap2Index !== -1 && row[spliterCap2Index]) {
+          spliterCap2Name = row[spliterCap2Index].toString().trim()
+        } else if (row[8]) {
+          // Fallback: dùng index 8 trực tiếp (cột I)
+          spliterCap2Name = row[8].toString().trim()
+        }
         
         // Chỉ lấy kết quả có trạng thái "Đã vẽ" và có tên Spliter cấp 2
         // So sánh linh hoạt hơn (trim và không phân biệt hoa thường)
         const isDaVe = trangThai.toLowerCase().includes('đã vẽ') || trangThai.toLowerCase().includes('da ve')
         
+        // Debug log cho TẤT CẢ các dòng khớp OLT/Slot/Port
+        console.log(`[Row ${i}] Matched OLT/Slot/Port:`, {
+          rowIndex: i,
+          olt: currentOlt,
+          slot: currentSlot,
+          port: currentPort,
+          spliterCap2Name: spliterCap2Name || '(empty)',
+          trangThai: trangThai || '(empty)',
+          isDaVe,
+          spliterCap2NameIndex,
+          trangThaiIndex,
+          rowIndex8: row[8] || '(empty)',
+          rowIndex10: row[10] || '(empty)',
+          willAddToResults: isDaVe && spliterCap2Name ? 'YES' : 'NO',
+          reason: !isDaVe ? 'Status is not "Đã vẽ"' : !spliterCap2Name ? 'No Spliter cấp 2 name' : 'OK'
+        })
+        
         if (isDaVe && spliterCap2Name) {
+          filteredByStatusCount++
           results.push({
             olt: currentOlt,
             slot: currentSlot,
@@ -201,6 +253,14 @@ export async function POST(request: NextRequest) {
           })
         }
       }
+    }
+
+    console.log('=== SEARCH RESULTS ===')
+    console.log(`Total matched rows (OLT/Slot/Port): ${matchedRowsCount}`)
+    console.log(`Rows with "Đã vẽ" status: ${filteredByStatusCount}`)
+    console.log(`Final results count: ${results.length}`)
+    if (matchedRowsCount > 0 && results.length === 0) {
+      console.log('WARNING: Found matching rows but no results returned. Check status filtering logic.')
     }
 
     return NextResponse.json({ results })
