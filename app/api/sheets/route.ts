@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { google } from 'googleapis'
 import { drive_v3 } from 'googleapis'
 
+// Disable caching để đảm bảo luôn lấy danh sách sheet mới nhất
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     // Lấy thông tin từ biến môi trường
@@ -64,7 +68,16 @@ export async function GET() {
         // Nếu đã lấy được danh sách từ API, return ngay (không fallback)
         if (sheetList.length > 0) {
           const filteredSheetList = sheetList.filter(sheet => sheet.title && sheet.title.trim() !== '')
-          return NextResponse.json({ sheets: filteredSheetList })
+          return NextResponse.json(
+            { sheets: filteredSheetList },
+            {
+              headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+              },
+            }
+          )
         }
       } else {
         console.warn('⚠️ Không có sheet nào trong file')
@@ -203,7 +216,17 @@ export async function GET() {
     // Lọc bỏ các sheet trống hoặc không có tên
     const filteredSheetList = sheetList.filter(sheet => sheet.title && sheet.title.trim() !== '')
 
-    return NextResponse.json({ sheets: filteredSheetList })
+    // Disable caching để đảm bảo luôn lấy danh sách sheet mới nhất
+    return NextResponse.json(
+      { sheets: filteredSheetList },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    )
   } catch (error: any) {
     console.error('Error fetching sheets:', error)
     console.error('Error details:', JSON.stringify(error, null, 2))

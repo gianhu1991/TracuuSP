@@ -196,8 +196,26 @@ export async function POST(request: NextRequest) {
       const searchSlot = slot.trim().toLowerCase()
       const searchPort = port.trim().toLowerCase()
 
+      // So sánh OLT linh hoạt hơn: 
+      // - So sánh chính xác
+      // - Hoặc normalize cả hai (bỏ các từ như "XGS", "XG", "GXS") rồi so sánh
+      // - Hoặc một trong hai chứa phần còn lại
+      const normalizeOltName = (name: string) => {
+        return name.replace(/\s*(xgs|xg|gxs|gs)\s*/gi, '').trim()
+      }
+      
+      const normalizedSearchOlt = normalizeOltName(searchOlt)
+      const normalizedSheetOlt = normalizeOltName(normalizedOlt)
+      
+      const oltMatches = normalizedOlt === searchOlt || 
+                         normalizedSheetOlt === normalizedSearchOlt ||
+                         searchOlt.includes(normalizedOlt) || 
+                         normalizedOlt.includes(normalizedSearchOlt) ||
+                         normalizedSheetOlt.includes(normalizedSearchOlt) ||
+                         normalizedSearchOlt.includes(normalizedSheetOlt)
+
       if (
-        normalizedOlt === searchOlt &&
+        oltMatches &&
         normalizedSlot === searchSlot &&
         normalizedPort === searchPort
       ) {
