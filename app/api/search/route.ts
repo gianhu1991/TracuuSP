@@ -143,10 +143,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Debug: Log request parameters và column indexes - dùng console.error để đảm bảo hiển thị trên Vercel
-    console.error('[SEARCH] Request:', JSON.stringify({ olt, slot, port, toKyThuat, sheetName: olt }))
+    console.error('[SEARCH] Request:', JSON.stringify({ olt, slot, port, toKyThuat, sheetName: olt, note: 'OLT chỉ dùng để chọn sheet, không so sánh trong dữ liệu' }))
     console.error('[SEARCH] Total rows:', rows.length)
     console.error('[SEARCH] Column indexes:', JSON.stringify({
-      oltIndex,
       slotIndex,
       portIndex,
       spliterCap2Index,
@@ -156,14 +155,13 @@ export async function POST(request: NextRequest) {
     }))
     console.error('[SEARCH] First 3 rows:', JSON.stringify(rows.slice(1, 4).map((row: any[], idx: number) => ({
       rowIndex: idx + 1,
-      olt: row[oltIndex] || '(empty)',
       slot: row[slotIndex] || '(empty)',
       port: row[portIndex] || '(empty)',
       spliterCap2: row[spliterCap2NameIndex] || row[spliterCap2Index] || row[8] || '(empty)',
       trangThai: row[trangThaiIndex] || row[10] || '(empty)',
     }))))
 
-    // Lọc dữ liệu theo OLT, Slot, Port
+    // Lọc dữ liệu theo Slot và Port (OLT chỉ dùng để chọn sheet, không so sánh)
     const results: any[] = []
     let matchedRowsCount = 0
     let filteredByStatusCount = 0
@@ -172,20 +170,10 @@ export async function POST(request: NextRequest) {
       const row = rows[i]
       
       // Xử lý merged cells - nếu cell trống, lấy giá trị từ hàng trước
-      let currentOlt = row[oltIndex] || ''
       let currentSlot = row[slotIndex] || ''
       let currentPort = row[portIndex] || ''
       
       // Nếu cell trống, tìm giá trị từ các hàng trước
-      if (!currentOlt && i > 1) {
-        for (let j = i - 1; j >= 1; j--) {
-          if (rows[j][oltIndex]) {
-            currentOlt = rows[j][oltIndex]
-            break
-          }
-        }
-      }
-      
       if (!currentSlot && i > 1) {
         for (let j = i - 1; j >= 1; j--) {
           if (rows[j][slotIndex]) {
@@ -204,35 +192,15 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // So sánh (không phân biệt hoa thường và loại bỏ khoảng trắng)
-      const normalizedOlt = currentOlt.toString().trim().toLowerCase()
+      // So sánh Slot và Port (không phân biệt hoa thường và loại bỏ khoảng trắng)
       const normalizedSlot = currentSlot.toString().trim().toLowerCase()
       const normalizedPort = currentPort.toString().trim().toLowerCase()
       
-      const searchOlt = olt.trim().toLowerCase()
       const searchSlot = slot.trim().toLowerCase()
       const searchPort = port.trim().toLowerCase()
 
-      // So sánh OLT linh hoạt hơn: 
-      // - So sánh chính xác
-      // - Hoặc normalize cả hai (bỏ các từ như "XGS", "XG", "GXS") rồi so sánh
-      // - Hoặc một trong hai chứa phần còn lại
-      const normalizeOltName = (name: string) => {
-        return name.replace(/\s*(xgs|xg|gxs|gs)\s*/gi, '').trim()
-      }
-      
-      const normalizedSearchOlt = normalizeOltName(searchOlt)
-      const normalizedSheetOlt = normalizeOltName(normalizedOlt)
-      
-      const oltMatches = normalizedOlt === searchOlt || 
-                         normalizedSheetOlt === normalizedSearchOlt ||
-                         searchOlt.includes(normalizedOlt) || 
-                         normalizedOlt.includes(normalizedSearchOlt) ||
-                         normalizedSheetOlt.includes(normalizedSearchOlt) ||
-                         normalizedSearchOlt.includes(normalizedSheetOlt)
-
+      // Chỉ so sánh Slot và Port (OLT đã được dùng để chọn sheet rồi)
       if (
-        oltMatches &&
         normalizedSlot === searchSlot &&
         normalizedPort === searchPort
       ) {
@@ -266,12 +234,11 @@ export async function POST(request: NextRequest) {
         // So sánh linh hoạt hơn (trim và không phân biệt hoa thường)
         const isDaVe = trangThai.toLowerCase().includes('đã vẽ') || trangThai.toLowerCase().includes('da ve')
         
-        // Debug log cho TẤT CẢ các dòng khớp OLT/Slot/Port - dùng console.error để đảm bảo hiển thị
+        // Debug log cho TẤT CẢ các dòng khớp Slot/Port - dùng console.error để đảm bảo hiển thị
         console.error(`[SEARCH] Row ${i} MATCHED:`, JSON.stringify({
           rowIndex: i,
-          searchParams: { olt, slot, port },
+          searchParams: { olt, slot, port, sheetName: olt },
           rowValues: {
-            olt: currentOlt,
             slot: currentSlot,
             port: currentPort,
           },
@@ -294,7 +261,7 @@ export async function POST(request: NextRequest) {
         if (isDaVe && spliterCap2Name) {
           filteredByStatusCount++
           results.push({
-            olt: currentOlt,
+            olt: olt, // Dùng OLT từ request (tên sheet đã chọn)
             slot: currentSlot,
             port: currentPort,
             hop: row[hopIndex] || '',
@@ -333,9 +300,9 @@ export async function POST(request: NextRequest) {
           trangThaiIndex
         },
         warning: matchedRowsCount > 0 && results.length === 0 
-          ? 'Tìm thấy dòng khớp OLT/Slot/Port nhưng không có kết quả. Có thể do: 1) Trạng thái không phải "Đã vẽ", 2) Không có tên Spliter cấp 2' 
+          ? 'Tìm thấy dòng khớp Slot/Port nhưng không có kết quả. Có thể do: 1) Trạng thái không phải "Đã vẽ", 2) Không có tên Spliter cấp 2' 
           : matchedRowsCount === 0 
-          ? 'Không tìm thấy dòng nào khớp với OLT/Slot/Port. Kiểm tra lại giá trị tìm kiếm.' 
+          ? 'Không tìm thấy dòng nào khớp với Slot/Port trong sheet này. Kiểm tra lại giá trị tìm kiếm.' 
           : null
       }
     })
