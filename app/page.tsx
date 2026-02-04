@@ -35,6 +35,7 @@ export default function Home() {
   const [error, setError] = useState('')
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [showDebug, setShowDebug] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
 
   // Load danh sách sheet khi chọn Tổ kỹ thuật
   useEffect(() => {
@@ -352,8 +353,9 @@ export default function Home() {
               {results.map((result, index) => {
                 const copyToClipboard = (text: string) => {
                   navigator.clipboard.writeText(text).then(() => {
-                    // Hiển thị thông báo đã copy (có thể thêm toast notification)
-                    alert(`Đã copy: ${text}`)
+                    // Hiển thị toast notification tự động biến mất
+                    setToastMessage('Đã copy!')
+                    setTimeout(() => setToastMessage(''), 2000)
                   }).catch(err => {
                     console.error('Failed to copy:', err)
                     // Fallback cho trình duyệt cũ
@@ -363,7 +365,9 @@ export default function Home() {
                     textArea.select()
                     document.execCommand('copy')
                     document.body.removeChild(textArea)
-                    alert(`Đã copy: ${text}`)
+                    // Hiển thị toast notification tự động biến mất
+                    setToastMessage('Đã copy!')
+                    setTimeout(() => setToastMessage(''), 2000)
                   })
                 }
                 
@@ -390,6 +394,12 @@ export default function Home() {
       {!loading && results.length === 0 && !error && (
         <div className="no-results">
           Nhập thông tin OLT, Slot và Port để tra cứu
+        </div>
+      )}
+
+      {toastMessage && (
+        <div className="toast">
+          {toastMessage}
         </div>
       )}
     </div>
