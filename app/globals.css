@@ -237,7 +237,7 @@ h1 {
   padding: 18px 20px;
   text-align: left;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border: none;
@@ -412,7 +412,7 @@ h1 {
 
   .results-table th {
     padding: 12px 10px;
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .results-table th:first-child {
